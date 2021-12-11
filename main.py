@@ -2,7 +2,24 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import logging
+from logging.handlers import TimedRotatingFileHandler
 from CatFeeder import CatFeeder
+
+logging.basicConfig(
+    format='%(asctime)s %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
+    datefmt='%d-%m-%Y:%H:%M:%S',
+    level=logging.DEBUG
+)
+
+handler = TimedRotatingFileHandler(
+    "voerautomaat.log",
+    when="m",
+    interval=1,
+    backupCount=5
+)
+logger.addHandler(handler)
+
 
 #----------------------------------------------------------------------------------------------------
 # the main section

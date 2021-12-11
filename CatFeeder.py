@@ -47,22 +47,22 @@ class CatFeeder(Daemon):
     def timeUntilNextFeeding(self):
         next_job = min(schedule.get_jobs('feeding')).next_run
         if not next_job:
-            print('no next feeding')
+            logging.debug('no next feeding')
             return None;
         n = (next_job - datetime.datetime.now()).total_seconds()
         if n > 0:
             n = round(n / 60, 1)
-            print(str(n) + " minutes until the next feeding")
+            logging.info(str(n) + " minutes until the next feeding")
             return n;
         else:
             return 0;
 
     def feedPortions(self, portions = 1):
-        print('Manual feeding button was pressed')
+        logging.debug('Manual feeding button was pressed')
         feedJob = FeedJob(portions, self.feedingMachines)
         wasFed = self.runFeedJob(feedJob)
         if not wasFed:
-            print('Cannot feed now, another feeding sequence is already running')
+            logging.warning('Cannot feed now, another feeding sequence is already running')
 
     def reloadConfig(self, config = None):
         if(config is None):
@@ -81,7 +81,7 @@ class CatFeeder(Daemon):
         del self.feedingMachines[:]
         for machine in self.config.feedingMachines:
             if not machine['enabled']:
-                print('Machine '+machine['name']+' is disabled')
+                logging.info('Machine '+machine['name']+' is disabled')
                 continue
             newFeedingMachine = FeedingMachine(machine['name'], machine['motorPort'], machine['motorSensorPort'], machine['foodSensorPortOut'], machine['foodSensorPortIn'])
             self.feedingMachines.append(newFeedingMachine)
@@ -125,7 +125,7 @@ class CatFeeder(Daemon):
         schedule.every(10).seconds.do(self._heartbeat).tag('debug')
         schedule.every().day.at("00:00").do(self.display.sendTime).tag('display')
         for feeding in self.config.schedule:
-            print("I will feed " + str(feeding['portions']) + " portions at " + feeding['time'])
+            logging.info("I will feed " + str(feeding['portions']) + " portions at " + feeding['time'])
             feedJob = FeedJob(feeding['portions'], self.feedingMachines)
             schedule.every().day.at(feeding['time']).do(partial(self.runFeedJob, feedJob)).tag('feeding')
             self.feedJobs.append(feedJob)

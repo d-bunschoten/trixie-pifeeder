@@ -1,5 +1,4 @@
-import serial
-import threading
+import serial, logging, threading
 from time import sleep, localtime
 from functools import partial
 
@@ -95,13 +94,13 @@ class Display:
             #TODO: play 'touch' sound
         elif method == 17 and len(data) > 0:
             if data[0] == 255:
-                print('start recording')
+                logging.debug('start recording')
             elif data[0] == 0:
-                print('stop recording')
+                logging.debug('stop recording')
         elif method == 18:
-            print('play recording')
+            logging.debug('play recording')
         else:
-            print("unknown UART signal received: ", [method, data])
+            logging.warning("unknown UART signal received: ", [method, data])
         return
 
     def _validateInput(self, mth, len, data, checksum):

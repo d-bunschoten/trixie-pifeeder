@@ -1,4 +1,4 @@
-import time
+import time, logging
 from functools import partial
 
 class FeedJob:
@@ -20,7 +20,7 @@ class FeedJob:
 
     def _failureHandler(self, machine, error):
         currentRound = (self.portions - error.roundsLeft) + 1
-        print('Machine '+machine.name+' failed on portion #'+str(currentRound)+': '+error.message)
+        logging.error('Machine '+machine.name+' failed on portion #'+str(currentRound)+': '+error.message)
         self.onError(machine, error)
         # possibly send Notification here
 
@@ -32,7 +32,7 @@ class FeedJob:
     def feed(self):
         # do feeding here
         machinesDone = 0
-        print("I'm going to feed " + str(self.portions) + " portions now. Here kitty kitty...")
+        logging.debug("I'm going to feed " + str(self.portions) + " portions now. Here kitty kitty...")
         for machine in self.feedingMachines:
             machine.onFailure = partial(self._failureHandler, machine)
             machine.onFinish = partial(self._finishHandler, machine)

@@ -60,7 +60,7 @@ class FeedingMachine:
             return
         self.onFailure = doNothing
         self.onFinish = doNothing
-        print("new FeedingMachine ("+self.name+") installed")
+        logging.debug("new FeedingMachine ("+self.name+") installed")
         self.initGpio()
 
     def initGpio(self):
@@ -81,7 +81,7 @@ class FeedingMachine:
 
     def _motorTimeout(self):
         if self.motorActive:
-            print('Machine '+self.name+': Sequence was canceled, motor took too long')
+            logging.warning('Machine '+self.name+': Sequence was canceled, motor took too long')
             roundsLeft = self.currentRound
             self._stopSequence()
             self.onFailure(MotorFailureError(self, roundsLeft, 'Motor took too long, possibly blocked'))
@@ -92,7 +92,7 @@ class FeedingMachine:
             self.timeoutThread = None
 
     def _stopMotor(self):
-        print('Machine '+self.name+': Stopping motor')
+        logging.debug('Machine '+self.name+': Stopping motor')
         self._cancelMotorTimeout()
         self.motor.off()
         self.currentRound = None
@@ -102,7 +102,7 @@ class FeedingMachine:
     def _startMotor(self):
         if not self.motorActive:
             #self.motor.on()
-            print('Machine '+self.name+': Starting motor')
+            logging.debug('Machine '+self.name+': Starting motor')
             self.motorActive = True
             self.motor.on()
 
@@ -113,7 +113,7 @@ class FeedingMachine:
         if self.motorSensorWasPressed:
             #event was already handled
             return
-        print('Machine '+self.name+': Motor sensor for was pressed')
+        logging.debug('Machine '+self.name+': Motor sensor for was pressed')
         self.motorSensorWasPressed = True
         if self.currentRound is None:
             self._cancelMotorTimeout()
@@ -135,20 +135,20 @@ class FeedingMachine:
 
     def _nextSequence(self):
         try:
-            print('Machine '+self.name+': Next round sequence (still '+str(self.currentRound - 1)+' rounds to go)')
+            logging.debug('Machine '+self.name+': Next round sequence (still '+str(self.currentRound - 1)+' rounds to go)')
             self.timeoutThread = threading.Timer(self.motorThreshold, self._motorTimeout)
             self.timeoutThread.start()
             threading.Timer(0.5, self._setMotorSensorListener).start()
             self._startFoodSensor()
             self._startMotor()
         except Exception as err:
-            print('Something went wrong')
+            logging.error('Something went wrong')
             self._stopSequence()
             self.onFailure(err)
             raise
 
     def _stopSequence(self):
-        print('Machine '+self.name+': Ending sequence')
+        logging.debug('Machine '+self.name+': Ending sequence')
         self._stopFoodSensor()
         self._stopMotor()
         self.onFinish()
@@ -156,7 +156,7 @@ class FeedingMachine:
     def runSequence(self, rounds = 1):
         self.currentRound = rounds
         if self.currentRound > 0:
-            print('Machine '+self.name+': Starting sequence of '+str(self.currentRound)+' rounds')
+            logging.debug('Machine '+self.name+': Starting sequence of '+str(self.currentRound)+' rounds')
             threading.Thread(target=self._nextSequence).start()
         else:
-            print('Machine '+self.name+': Rounds must be at least 1')
+            logging.error('Machine '+self.name+': Rounds must be at least 1')
