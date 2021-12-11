@@ -1,0 +1,44 @@
+{
+  "schedule": [
+    {
+      "time": "08:00:00",
+      "portions": 3
+    },
+    {
+      "time": "10:00:00",
+      "portions": 2
+    },
+    {
+      "time": "12:00:00",
+      "portions": 1
+    },
+    {
+      "time": "14:00:00",
+      "portions": 2
+    },
+    {
+      "time": "18:00:00",
+      "portions": 2
+    }
+  ],
+  "loglevel": "DEBUG",
+  "notify": "your-email@gmail.com",
+  "email": {
+    "from": "sender-email@gmail.com",
+    "pass": "pass",
+    "smtp": "smtp.gmail.com",
+    "port": 465
+  },
+  "manualFeedingButtonPort": 16,
+  "statusLedPort": 25,
+  "feedingMachines": [
+    {
+      "name": "Rechts",
+      "enabled": true,
+      "motorPort": 17,
+      "motorSensorPort": 23,
+      "foodSensorPortOut": 5,
+      "foodSensorPortIn": 6
+    }
+  ]
+}
