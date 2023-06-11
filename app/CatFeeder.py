@@ -65,12 +65,12 @@ class CatFeeder(Daemon):
                 "last_feed": None,
                 "last_feed_portions": None,
                 "last_feed_status": None,
-                "next_feed": nextJob.next_run.replace(microsecond=0).replace(tzinfo=tz).isoformat(),
+                "next_feed": nextJob.next_run.replace(microsecond=0).astimezone().isoformat(),
                 "next_feed_portions": feedJob.portions,
                 "schedule_enabled": True
             }
             if self.lastJob != None:
-                status["last_feed"] = self.lastJobRun.replace(microsecond=0).replace(tzinfo=tz).isoformat()
+                status["last_feed"] = self.lastJobRun.replace(microsecond=0).astimezone().isoformat()
                 status["last_feed_portions"] = self.lastJob.portions
                 status["last_feed_status"] = self.lastJobStatus
             return status
