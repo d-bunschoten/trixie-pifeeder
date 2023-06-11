@@ -22,12 +22,16 @@
     }
   ],
   "loglevel": "DEBUG",
-  "notify": "your-email@gmail.com",
-  "email": {
-    "from": "sender-email@gmail.com",
-    "pass": "pass",
-    "smtp": "smtp.gmail.com",
-    "port": 465
+  "mqtt": {
+    "client_id": "voarautomaat_links",
+    "host": "homeassistant.home",
+    "user": "mqtt_user",
+    "pass": "refusal-8Blurry-6Custody-Girl2"
+  },
+  "device": {
+    "id": "links",
+    "name": "Voerautomaat Links",
+    "config_url": "http://links.voerautomaat.home"
   },
   "manualFeedingButtonPort": 16,
   "statusLedPort": 25,

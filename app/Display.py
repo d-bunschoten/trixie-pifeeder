@@ -13,10 +13,13 @@ class Display:
 
     def __init__(self, config):
         self.config = config
-        self.ser = serial.Serial ("/dev/ttyS0", 2400, serial.EIGHTBITS, serial.PARITY_NONE, serial.STOPBITS_ONE)
-        self.onManualFeed = self._void
-        threading.Thread(target=self._startListener).start()
-        self.install()
+        try:
+            self.ser = serial.Serial ("/dev/ttyS0", 2400, serial.EIGHTBITS, serial.PARITY_NONE, serial.STOPBITS_ONE)
+            self.onManualFeed = self._void
+            threading.Thread(target=self._startListener).start()
+            self.install()
+        except serial.SerialException as err:
+            pass
 
     def _void(self):
         pass
@@ -63,7 +66,8 @@ class Display:
             line = line + data
         checksum = int(sum(line) & 0xFF)
         line.append(checksum)
-        self.ser.write(bytearray(line))
+        if self.ser is not None:
+            self.ser.write(bytearray(line))
 
     def _interpretInput(self, method, data = []):
 #        match method:

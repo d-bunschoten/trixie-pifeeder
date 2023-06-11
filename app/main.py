@@ -11,10 +11,11 @@ logging.basicConfig(
     datefmt='%d-%m-%Y:%H:%M:%S',
     level=logging.DEBUG
 )
+logger = logging.getLogger()
 
 handler = TimedRotatingFileHandler(
-    "voerautomaat.log",
-    when="m",
+    "/var/log/voerautomaat/voerautomaat.log",
+    when="w0",
     interval=1,
     backupCount=5
 )

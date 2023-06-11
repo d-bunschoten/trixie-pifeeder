@@ -1,18 +1,19 @@
 import json
+from os.path import abspath, dirname
 
 class Config:
     file = ""
     schedule = []
     loglevel = "ERROR"
-    notify = ""
-    email = ""
     feedingMachines = []
     manualFeedingButtonPort = None
     statusLedPort = None
+    mqtt = {}
+    device = {}
 
     def __init__(self, file = None):
         if(file is None):
-            file = "/home/pi/voerautomaat/config.json"
+            file = dirname(abspath(__file__)) + "/config.json"
         self.file = file
         self.readConfig()
 
@@ -21,9 +22,9 @@ class Config:
         data = json.loads(f.read())
         self.schedule = data["schedule"]
         self.loglevel = data["loglevel"]
-        self.notify = data["notify"]
-        self.email = data["email"]
         self.feedingMachines = data["feedingMachines"]
         self.manualFeedingButtonPort = data["manualFeedingButtonPort"]
         self.statusLedPort = data["statusLedPort"]
-        f.close()
+        self.mqtt = data["mqtt"]
+        self.device = data["device"]
+        f.close() 

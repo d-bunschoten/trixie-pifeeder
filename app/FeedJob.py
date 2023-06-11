@@ -8,6 +8,7 @@ class FeedJob:
     machinesDone = 0
 
     onError = None
+    onSuccessful = None
     onFinish = None
 
     def __init__(self, portions, feedingMachines):
@@ -17,6 +18,7 @@ class FeedJob:
             return
         self.onError = doNothing
         self.onFinish = doNothing
+        self.onSuccessful = doNothing
 
     def _failureHandler(self, machine, error):
         currentRound = (self.portions - error.roundsLeft) + 1
@@ -35,5 +37,6 @@ class FeedJob:
         logging.debug("I'm going to feed " + str(self.portions) + " portions now. Here kitty kitty...")
         for machine in self.feedingMachines:
             machine.onFailure = partial(self._failureHandler, machine)
+            machine.onSuccessful = partial(self.onSuccessful, machine)
             machine.onFinish = partial(self._finishHandler, machine)
             machine.runSequence(self.portions)
