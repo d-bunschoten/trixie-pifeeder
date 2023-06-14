@@ -196,7 +196,8 @@ class CatFeeder(Daemon):
     def setupScheduler(self):
         schedule.clear()
         self.feedJobs = []
-        schedule.every(10).seconds.do(self._heartbeat).tag('debug')
+        if self.statusLed != None:
+            schedule.every(10).seconds.do(self._heartbeat).tag('debug')
         schedule.every().day.at("00:00").do(self.display.sendTime).tag('display')
         for feeding in self.config.schedule:
             logging.info("I will feed " + str(feeding['portions']) + " portions at " + feeding['time'])
