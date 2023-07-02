@@ -2,6 +2,8 @@ import serial, logging, threading
 from time import sleep, localtime
 from functools import partial
 
+logger = logging.getLogger()
+
 class Display:
 
     ser = None
@@ -52,7 +54,20 @@ class Display:
             counter+=1
         self.sendSignal(2, [0, 0, 0, 0, 0, 0, 0])
 
-    def sendFeedingSuccessful(self):
+    def sendFeedingSuccessful(self, feedJob):
+        maxSlots = 6
+        counter = 1
+        while counter <= maxSlots:
+            if len(self.config.schedule) >= counter:
+                feeding = self.config.schedule[counter-1]
+                feedingTime = feeding['time']
+                if feedJob.time == feeding['time']:
+                    feedingTime = feedingTime.split(":")
+                    portions = int(feeding['portions'])
+                    data = [int(feedingTime[0]), int(feedingTime[1]), 2, 0, 255]
+                    self.sendSignal(15, data)
+                    break
+            counter+=1
         self.sendSignal(12, [0])
 
     def sendStatus(self):
@@ -66,6 +81,7 @@ class Display:
             line = line + data
         checksum = int(sum(line) & 0xFF)
         line.append(checksum)
+        logger.debug(f'Sending data to display: {line}')
         if self.ser is not None:
             self.ser.write(bytearray(line))
 
@@ -98,13 +114,13 @@ class Display:
             #TODO: play 'touch' sound
         elif method == 17 and len(data) > 0:
             if data[0] == 255:
-                logging.debug('start recording')
+                logger.debug('start recording')
             elif data[0] == 0:
-                logging.debug('stop recording')
+                logger.debug('stop recording')
         elif method == 18:
-            logging.debug('play recording')
+            logger.debug('play recording')
         else:
-            logging.warning("unknown UART signal received: ", [method, data])
+            logger.warning("unknown UART signal received: ", [method, data])
         return
 
     def _validateInput(self, mth, len, data, checksum):

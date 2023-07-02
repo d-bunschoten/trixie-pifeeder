@@ -105,7 +105,7 @@ class CatFeeder(Daemon):
 
     def feedPortions(self, portions = 1):
         logging.debug('Manual feeding')
-        feedJob = FeedJob(portions, self.feedingMachines)
+        feedJob = FeedJob(portions, None, self.feedingMachines)
         wasFed = self.runFeedJob(feedJob)
         if not wasFed:
             logging.warning('Cannot feed now, another feeding sequence is already running')
@@ -148,13 +148,15 @@ class CatFeeder(Daemon):
     def runFeedJob(self, feedJob: FeedJob):
         if not self.jobIsRunning:
             feedJob.onError = partial(self._jobErrorHandler, feedJob)
-            feedJob.onFinish = self._jobFinished
+            feedJob.onFinish = partial(self._jobFinished, feedJob)
             feedJob.onSuccessful = partial(self._jobSuccessfulHandler, feedJob)
             self.jobIsRunning = True
             self.lastJob = feedJob
             self.lastJobRun = datetime.datetime.now()
             self.lastJobStatus = "running"
+            self.mqttClient.send_status_message()
             feedJob.feed()
+            self.display.sendTime()
             self.timeUntilNextFeeding()
             self.statusLedActive = True
             if self.statusLed != None:
@@ -176,12 +178,12 @@ class CatFeeder(Daemon):
             self.statusLed.blink(0.1,0.2,30,False)
         self.statusLedActive = False
 
-    def _jobFinished(self):
+    def _jobFinished(self, feedJob):
         if self.statusLed != None:
             self.statusLed.off()
         self.statusLedActive = False
         self.jobIsRunning = False
-        self.display.sendFeedingSuccessful()
+        self.display.sendFeedingSuccessful(feedJob)
         logger.debug('Job has finished')
         self.timeUntilNextFeeding()
         self.mqttClient.send_status_message()
@@ -201,7 +203,7 @@ class CatFeeder(Daemon):
         schedule.every().day.at("00:00").do(self.display.sendTime).tag('display')
         for feeding in self.config.schedule:
             logging.info("I will feed " + str(feeding['portions']) + " portions at " + feeding['time'])
-            feedJob = FeedJob(feeding['portions'], self.feedingMachines)
+            feedJob = FeedJob(feeding['portions'], feeding['time'], self.feedingMachines)
             schedule.every().day.at(feeding['time']).do(self.runFeedJob, feedJob=feedJob).tag('feeding')
             self.feedJobs.append(feedJob)
 

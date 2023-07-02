@@ -6,13 +6,15 @@ class FeedJob:
     feedingMachines = []
 
     machinesDone = 0
+    time = None
 
     onError = None
     onSuccessful = None
     onFinish = None
 
-    def __init__(self, portions, feedingMachines):
+    def __init__(self, portions, time, feedingMachines):
         self.portions = portions
+        self.time = time
         self.feedingMachines = feedingMachines
         def doNothing():
             return
