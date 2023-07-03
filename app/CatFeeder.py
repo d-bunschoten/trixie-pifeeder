@@ -209,6 +209,8 @@ class CatFeeder(Daemon):
 
     def _unload(self):
         logger.info('Stopping CatFeeder service')
+        if self.mqttClient != None:
+            self.mqttClient.disconnect()
 
     def run(self):
         try:
