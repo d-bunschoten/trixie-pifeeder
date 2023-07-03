@@ -47,8 +47,8 @@ class CatFeeder(Daemon):
     def _initManualFeedingButton(self):
         if self.config.manualFeedingButtonPort != None:
             self.manualFeedingButton = Button(self.config.manualFeedingButtonPort)
-            self.manualFeedingButton.when_held = self.feedPortions
-            self.manualFeedingButton.when_pressed = self.timeUntilNextFeeding
+            self.manualFeedingButton.when_held = self._feedPortions
+            self.manualFeedingButton.when_pressed = self._timeUntilNextFeeding
 
     def _initMqtt(self):
         def feeding_callback(portions):
