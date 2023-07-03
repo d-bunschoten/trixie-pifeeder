@@ -10,7 +10,7 @@ from FeedingMachine import FeedingMachine
 from MQTTClient import MQTTClient
 from gpiozero import Button, LED
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 tz = pytz.timezone('Europe/Amsterdam')
 
 class CatFeeder(Daemon):
@@ -21,42 +21,38 @@ class CatFeeder(Daemon):
 
     statusLed = None
     display = None
+    mqttClient = None
+
     statusLedActive = False
     feedingMachines = []
     feedJobs = []
+
     manualFeedingButton = None
-    withDaemon = True
     jobIsRunning = False
-    mqttClient = None
 
-    def __init__(self, stdIn='/dev/null', stdOut='/var/log/voerautomaat/voerautomaat.log', stdErr='/var/log/voerautomaat/error.log'):
-        return super(CatFeeder, self).__init__(stdIn, stdOut, stdErr)
-
-    def setDaemon(self, newSetting = True):
-        self.withDaemon = newSetting
-
-    def install(self):
-        self.reloadConfig()
+    def __init__(self):
+        super(CatFeeder, self).__init__()
 
     def _setup(self):
-        self.install()
+        logger.info('Starting CatFeeder service')
+        self._reloadConfig()
 
     def _runUser1Handler(self):
-        self.feedPortions()
+        self._feedPortions()
 
-    def initDisplay(self):
+    def _initDisplay(self):
         self.display = Display(self.config)
-        self.display.onManualFeed = self.feedPortions
+        self.display.onManualFeed = self._feedPortions
 
-    def initManualFeedingButton(self):
+    def _initManualFeedingButton(self):
         if self.config.manualFeedingButtonPort != None:
             self.manualFeedingButton = Button(self.config.manualFeedingButtonPort)
             self.manualFeedingButton.when_held = self.feedPortions
             self.manualFeedingButton.when_pressed = self.timeUntilNextFeeding
 
-    def initMqtt(self):
+    def _initMqtt(self):
         def feeding_callback(portions):
-            self.feedPortions(portions)
+            self._feedPortions(portions)
 
         def status_callback():
             nextJob = min(schedule.get_jobs('feeding'))
@@ -90,41 +86,34 @@ class CatFeeder(Daemon):
         self.mqttClient.connect()
         self.mqttClient.send_status_message()
 
-    def timeUntilNextFeeding(self):
+    def _timeUntilNextFeeding(self):
         next_job = min(schedule.get_jobs('feeding')).next_run
         if not next_job:
-            logging.debug('no next feeding')
+            logger.debug('no next feeding')
             return None;
         n = (next_job - datetime.datetime.now()).total_seconds()
         if n > 0:
             n = round(n / 60, 1)
-            logging.info(str(n) + " minutes until the next feeding")
+            logger.info(str(n) + " minutes until the next feeding")
             return n;
         else:
             return 0;
 
-    def feedPortions(self, portions = 1):
-        logging.debug('Manual feeding')
-        feedJob = FeedJob(portions, None, self.feedingMachines)
-        wasFed = self.runFeedJob(feedJob)
-        if not wasFed:
-            logging.warning('Cannot feed now, another feeding sequence is already running')
-
-    def reloadConfig(self, config = None):
+    def _reloadConfig(self, config = None):
         if(config is None):
             config = Config()
             self.config = config
         self.config.readConfig()
 
-        self.initManualFeedingButton()
-        self.initDisplay()
-        self.initStatusLed()
-        self.reloadFeedingMachines()
-        self.setupScheduler()
-        self.initMqtt()
-        self.timeUntilNextFeeding()
+        self._initManualFeedingButton()
+        self._initDisplay()
+        self._initStatusLed()
+        self._reloadFeedingMachines()
+        self._setupScheduler()
+        self._initMqtt()
+        self._timeUntilNextFeeding()
 
-    def reloadFeedingMachines(self):
+    def _reloadFeedingMachines(self):
         if self.statusLed != None:
             self.statusLed.blink(0.5,0.5,3)
         else:
@@ -134,22 +123,33 @@ class CatFeeder(Daemon):
         del self.feedingMachines[:]
         for machine in self.config.feedingMachines:
             if not machine['enabled']:
-                logging.info('Machine '+machine['name']+' is disabled')
+                logger.info('Machine '+machine['name']+' is disabled')
                 continue
             newFeedingMachine = FeedingMachine(machine['name'], machine['motorPort'], machine['motorSensorPort'], machine['foodSensorPortOut'], machine['foodSensorPortIn'])
             self.feedingMachines.append(newFeedingMachine)
 
-    def initStatusLed(self):
+    def _initStatusLed(self):
         if self.config.statusLedPort != None:
             if self.statusLed:
                 self.statusLed.close()
             self.statusLed = LED(self.config.statusLedPort)
 
-    def runFeedJob(self, feedJob: FeedJob):
+    def _createFeedJob(self, portions = 1, time = None):
+        feedJob = FeedJob(portions, time, self.feedingMachines)
+        feedJob.onError = partial(self._jobErrorHandler, feedJob)
+        feedJob.onFinish = partial(self._jobFinished, feedJob)
+        feedJob.onSuccessful = partial(self._jobSuccessfulHandler, feedJob)
+        return feedJob
+
+    def _feedPortions(self, portions = 1):
+        logger.debug('Manual feeding')
+        feedJob = self._createFeedJob(portions)
+        wasFed = self._runFeedJob(feedJob)
+        if not wasFed:
+            logger.warning('Cannot feed now, another feeding sequence is already running')
+
+    def _runFeedJob(self, feedJob: FeedJob):
         if not self.jobIsRunning:
-            feedJob.onError = partial(self._jobErrorHandler, feedJob)
-            feedJob.onFinish = partial(self._jobFinished, feedJob)
-            feedJob.onSuccessful = partial(self._jobSuccessfulHandler, feedJob)
             self.jobIsRunning = True
             self.lastJob = feedJob
             self.lastJobRun = datetime.datetime.now()
@@ -157,7 +157,7 @@ class CatFeeder(Daemon):
             self.mqttClient.send_status_message()
             feedJob.feed()
             self.display.sendTime()
-            self.timeUntilNextFeeding()
+            self._timeUntilNextFeeding()
             self.statusLedActive = True
             if self.statusLed != None:
                 self.statusLed.on()
@@ -185,7 +185,7 @@ class CatFeeder(Daemon):
         self.jobIsRunning = False
         self.display.sendFeedingSuccessful(feedJob)
         logger.debug('Job has finished')
-        self.timeUntilNextFeeding()
+        self._timeUntilNextFeeding()
         self.mqttClient.send_status_message()
 
     def _heartbeat(self):
@@ -195,28 +195,26 @@ class CatFeeder(Daemon):
         else:
             logger.debug('Heartbeat')
 
-    def setupScheduler(self):
+    def _setupScheduler(self):
         schedule.clear()
         self.feedJobs = []
         if self.statusLed != None:
             schedule.every(10).seconds.do(self._heartbeat).tag('debug')
         schedule.every().day.at("00:00").do(self.display.sendTime).tag('display')
         for feeding in self.config.schedule:
-            logging.info("I will feed " + str(feeding['portions']) + " portions at " + feeding['time'])
-            feedJob = FeedJob(feeding['portions'], feeding['time'], self.feedingMachines)
-            schedule.every().day.at(feeding['time']).do(self.runFeedJob, feedJob=feedJob).tag('feeding')
+            logger.info("I will feed " + str(feeding['portions']) + " portions at " + feeding['time'])
+            feedJob = self._createFeedJob(feeding['portions'], feeding['time'])
+            schedule.every().day.at(feeding['time']).do(self._runFeedJob, feedJob=feedJob).tag('feeding')
             self.feedJobs.append(feedJob)
 
+    def _unload(self):
+        logger.info('Stopping CatFeeder service')
 
     def run(self):
         try:
             if self.isReloadSignal:
-                self.reloadConfig()
+                self._reloadConfig()
                 self.isReloadSignal = False
-            if not self.withDaemon:
-                while True:
-                    schedule.run_pending()
-                    time.sleep(1)
             else:
                 schedule.run_pending()
         except Exception:

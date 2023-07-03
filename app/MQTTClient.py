@@ -3,8 +3,9 @@ import json
 import socket
 import time
 import logging
+import threading
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 TOPIC_PREFIX = "cat_feeder"
 DEFAULT_PORTIONS = 1
@@ -33,19 +34,34 @@ class MQTTClient:
         self.client.on_disconnect = self._on_disconnect
         self.client.on_message = self._on_message
 
+        self.connection_lock = threading.Lock()
+        self._stop_event = threading.Event()
+
     def connect(self):
-        while not self.connected:
+        with self.connection_lock:
+            if not self.connected and (not hasattr(self, '_connection_thread') or not self._connection_thread.is_alive()):
+                self._connection_thread = threading.Thread(target=self._connect_loop, daemon=True)
+                self._connection_thread.start()
+
+    def _connect_loop(self):
+        while not self._stop_event.is_set() and not self.connected:
             try:
                 logger.debug(f"Connecting to MQTT host {self.mqtt_host}...")
                 self.client.connect(self.mqtt_host, 1883, 10)
                 self.client.loop_start()
                 self.connected = True  # Only set this if connection was successful
-                logger.info(f"Connected to MQTT host {self.mqtt_host}")
             except (ConnectionRefusedError, socket.gaierror) as e:
                 logger.warning("Failed to connect. Trying again in 20 seconds.")
-                time.sleep(20)  # Wait before trying again
+                for _ in range(20):  # Split 20 sec into twenty 1-sec sleeps
+                    time.sleep(1)  # Sleep for 1 sec
+                    if self._stop_event.is_set():
+                        return
 
     def disconnect(self):
+        if hasattr(self, '_connection_thread') and self._connection_thread.is_alive():
+            self._stop_event.set()  # Send stop signal to the connect thread
+            self._connection_thread.join()  # Wait for _connect_loop to finish
+            self._stop_event = threading.Event()
         if self.connected:
             self.connected = False
             self.client.loop_stop()
@@ -56,7 +72,7 @@ class MQTTClient:
             logger.warning("Unexpected MQTT disconnection. Trying to reconnect...")
 
     def _on_connect(self, client, userdata, flags, rc):
-        logger.debug(f"Connected to MQTT '{self.mqtt_host}'! Subscribing to topics.")
+        logger.debug(f"Connected to MQTT '{self.mqtt_host}'. Subscribing to topics")
         feed_topic = f"{TOPIC_PREFIX}/{self.feeder_id}/feed"
         status_request_topic = f"{TOPIC_PREFIX}/{self.feeder_id}/status_request"
         update_topic = f"{TOPIC_PREFIX}/{self.feeder_id}/update"

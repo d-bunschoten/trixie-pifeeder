@@ -3,30 +3,18 @@
 
 import sys
 import logging
-from logging.handlers import TimedRotatingFileHandler
-from CatFeeder import CatFeeder
+from logger import initLogger
 
-logging.basicConfig(
-    format='%(asctime)s %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
-    datefmt='%d-%m-%Y:%H:%M:%S',
-    level=logging.DEBUG
-)
 logger = logging.getLogger()
+initLogger(logger)
 
-handler = TimedRotatingFileHandler(
-    "/var/log/voerautomaat/voerautomaat.log",
-    when="w0",
-    interval=1,
-    backupCount=5
-)
-logger.addHandler(handler)
-
+from CatFeeder import CatFeeder
 
 #----------------------------------------------------------------------------------------------------
 # the main section
 if __name__ == "__main__":
     daemon = CatFeeder()
-    usageMessage = f"Usage: {sys.argv[0]} (start|stop|restart|status|reload|version|feed|nodaemon)"
+    usageMessage = f"Usage: {sys.argv[0]} (start|stop|restart|status|reload|version|feed|verbose)"
     if len(sys.argv) == 2:
         choice = sys.argv[1]
         if choice == "start":
@@ -43,10 +31,8 @@ if __name__ == "__main__":
             daemon.version()
         elif choice == "feed":
             daemon.user1Signal()
-        elif choice == "nodaemon":
-            daemon.setDaemon(False)
-            daemon.install()
-            daemon.run()
+        elif choice == "verbose":
+            daemon.verbose()
         else:
             print("Unknown command.")
             print(usageMessage)

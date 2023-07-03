@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
-import sys, os, time, psutil, signal
+import sys, os, time, psutil, signal, logging
+logger = logging.getLogger(__name__)
+logger.propagate = True
+
 class Daemon(object):
     """
     Usage: - create your own a subclass Daemon class and override the run() method. Run() will be periodically the calling inside the infinite run loop
@@ -97,6 +100,10 @@ class Daemon(object):
         self._setup()
         # Start a infinitive loop that periodically runs run() method
         self._infiniteLoop()
+    def verbose(self):
+        self._setup()
+        # Start a infinitive loop that periodically runs run() method
+        self._infiniteLoop()
     def version(self):
         m = f"The daemon version {self.ver}"
         print(m)
@@ -173,6 +180,10 @@ class Daemon(object):
         """
         Define own options here.
         """
+    def _unload():
+        """
+        Define unload options here.
+        """
     def _infiniteLoop(self):
         try:
             if self.pauseRunLoop:
@@ -180,9 +191,11 @@ class Daemon(object):
                 while self._canDaemonRun:
                     self.run()
                     time.sleep(self.pauseRunLoop)
+                self._unload()
             else:
                 while self._canDaemonRun:
                     self.run()
+                self._unload()
         except Exception as e:
             m = f"Run method failed: {e}"
             sys.stderr.write(m)

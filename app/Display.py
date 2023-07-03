@@ -2,7 +2,7 @@ import serial, logging, threading
 from time import sleep, localtime
 from functools import partial
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 class Display:
 

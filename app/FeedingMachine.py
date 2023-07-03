@@ -3,7 +3,7 @@ from functools import partial
 import threading, time
 import logging
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 class FeedingMachineError(Exception):
     """General Exception class for FeedingMachines
