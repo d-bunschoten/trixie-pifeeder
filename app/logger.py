@@ -10,7 +10,7 @@ def initLogger(logger):
     ALL_LOG_FILE = os.path.join(LOG_DIR, "voerautomaat.log")
     ERROR_LOG_FILE = os.path.join(LOG_DIR, "error.log")
 
-    formatter = logging.Formatter('%(asctime)s %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s', datefmt='%d-%m-%Y %H:%M:%S')
+    formatter = logging.Formatter('%(asctime)s %(levelname)-8s [%(filename)s:%(lineno)d|PID:%(process)d] %(message)s', datefmt='%d-%m-%Y %H:%M:%S')
 
     console_handler = logging.StreamHandler(sys.stdout)  # sys.stdout sends output to the console
     console_handler.setFormatter(formatter)

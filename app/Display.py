@@ -12,12 +12,14 @@ class Display:
     displayAddress = [255,252]
 
     onManualFeed = None
+    _running = False
 
     def __init__(self, config):
         self.config = config
         try:
             self.ser = serial.Serial ("/dev/ttyS0", 2400, serial.EIGHTBITS, serial.PARITY_NONE, serial.STOPBITS_ONE)
             self.onManualFeed = self._void
+            self._running = True
             threading.Thread(target=self._startListener).start()
             self.install()
         except serial.SerialException as err:
@@ -30,6 +32,10 @@ class Display:
         self.sendStatus()
         self.sendTime()
         self.sendFeedingJobs()
+
+    def unload(self):
+        self._running = False
+        self.ser.close()
 
     def sendTime(self):
         now=localtime()
@@ -132,7 +138,7 @@ class Display:
             raise Exception('Checksum invalid', [mth, len, data, checksum])
 
     def _startListener(self):
-        while True:
+        while self._running:
             try:
                 self.ser.read_until(bytearray(self.ownAddress))
                 meta = self.ser.read(2)

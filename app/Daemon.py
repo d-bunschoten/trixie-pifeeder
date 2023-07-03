@@ -157,7 +157,7 @@ class Daemon(object):
                 logger.warning(f"The daemon process with PID {p.pid} was killed with SIGTERM!")
                 p.kill()
         else:
-            logger.info("Cannot find some daemon process, I will do nothing.")
+            logger.info("Cannot find daemon process, I will do nothing.")
     def restart(self):
         """
         Restart the daemon.
@@ -185,11 +185,10 @@ class Daemon(object):
                 while self._canDaemonRun:
                     self.run()
                     time.sleep(self.pauseRunLoop)
-                self._unload()
             else:
                 while self._canDaemonRun:
                     self.run()
-                self._unload()
+            self._unload()
         except Exception as e:
             logger.error(f"Run method failed: {e}")
             sys.exit(1)

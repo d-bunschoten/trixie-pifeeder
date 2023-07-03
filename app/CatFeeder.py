@@ -2,13 +2,13 @@ import schedule, time, logging, datetime
 import pytz
 import json
 from functools import partial
+from gpiozero import Button, LED
 from Config import Config
 from FeedJob import FeedJob
 from Daemon import Daemon
 from Display import Display
 from FeedingMachine import FeedingMachine
 from MQTTClient import MQTTClient
-from gpiozero import Button, LED
 
 logger = logging.getLogger(__name__)
 tz = pytz.timezone('Europe/Amsterdam')
@@ -209,6 +209,15 @@ class CatFeeder(Daemon):
 
     def _unload(self):
         logger.info('Stopping CatFeeder service')
+        schedule.clear()
+        for machine in self.feedingMachines:
+            machine.closeAll()
+        if self.manualFeedingButton != None:
+            self.manualFeedingButton.close()
+        if self.statusLed != None:
+            self.statusLed.close()
+        if self.display != None:
+            self.display.unload()
         if self.mqttClient != None:
             self.mqttClient.disconnect()
 
