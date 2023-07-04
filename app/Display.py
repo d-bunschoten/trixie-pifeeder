@@ -35,7 +35,8 @@ class Display:
 
     def unload(self):
         self._running = False
-        self.ser.close()
+        if self.ser != None:
+            self.ser.close()
 
     def sendTime(self):
         now=localtime()
@@ -87,7 +88,7 @@ class Display:
             line = line + data
         checksum = int(sum(line) & 0xFF)
         line.append(checksum)
-        logger.debug(f'Sending data to display: {line}')
+#        logger.debug(f'Sending data to display: {line}')
         if self.ser is not None:
             self.ser.write(bytearray(line))
 

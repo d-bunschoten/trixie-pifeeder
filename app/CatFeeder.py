@@ -74,13 +74,17 @@ class CatFeeder(Daemon):
         def update_callback():
             pass
 
+        def displaytest_callback(method, params):
+            self.display.sendSignal(method, params)
+
         if self.mqttClient != None:
             self.mqttClient.disconnect()
 
         self.mqttClient = MQTTClient(self.config, {
             "feeding_callback": feeding_callback,
             "status_callback": status_callback,
-            "update_callback": update_callback
+            "update_callback": update_callback,
+            "displaytest_callback": displaytest_callback
         })
 
         self.mqttClient.connect()

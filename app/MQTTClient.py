@@ -27,6 +27,7 @@ class MQTTClient:
         self.feeding_callback = callbacks.get("feeding_callback")
         self.status_callback = callbacks.get("status_callback")
         self.update_callback = callbacks.get("update_callback")
+        self.displaytest_callback = callbacks.get("displaytest_callback")
 
         self.client = mqtt.Client()
         self.client.username_pw_set(self.mqtt_user, self.mqtt_pass)
@@ -76,11 +77,13 @@ class MQTTClient:
         feed_topic = f"{TOPIC_PREFIX}/{self.feeder_id}/feed"
         status_request_topic = f"{TOPIC_PREFIX}/{self.feeder_id}/status_request"
         update_topic = f"{TOPIC_PREFIX}/{self.feeder_id}/update"
+        displaytest_topic = f"{TOPIC_PREFIX}/{self.feeder_id}/displaytest"
         discovery_topic = f"{TOPIC_PREFIX}/discovery"
 
         self.client.subscribe(feed_topic)
         self.client.subscribe(status_request_topic)
         self.client.subscribe(update_topic)
+        self.client.subscribe(displaytest_topic)
         self.client.subscribe(discovery_topic)
 
         self.send_status_message()
@@ -101,6 +104,17 @@ class MQTTClient:
             elif topic.endswith("/status_request"):
                 logger.debug("MQTT status request command was received")
                 self.send_status_message()
+
+            elif topic.endswith("/displaytest"):
+                logger.debug(f"MQTT displattest command received")
+                method = payload.get("method")
+                params = payload.get("params", [])
+                paramstring = ",".join([str(p) for p in params])
+                if method != None:
+                    logger.debug(f"Send display signal: {method} ({paramstring})")
+                    self.displaytest_callback(method, params)
+                else:
+                    logger.warning(f"Invalid display signal: {method} ({paramstring})")
 
     #        elif topic.endswith("/update"):
     #            logger.debug("MQTT update was received")
