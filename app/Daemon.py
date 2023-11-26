@@ -138,10 +138,8 @@ class Daemon(object):
             for p in procs:
                 os.kill(p.pid, signal.SIGUSR1)
                 logger.info(f"Send SIGUSR1 signal into the daemon process with PID {p.pid}.")
-                print(m)
         else:
             logger.info("The daemon is not running!")
-            print(m)
     def stop(self):
         """
         Stop the daemon.
